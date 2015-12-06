@@ -140,7 +140,6 @@ class ExampleWidget(QtGui.QWidget):
         if ok:
             item.person.name = text
             item.setText(0, text)
-
             # update all nodes to reflect name change
             self.update_nodes(root=self.treeWidget.invisibleRootItem())
 
@@ -202,7 +201,7 @@ class ExampleWidget(QtGui.QWidget):
             node = CustomTreeNode(root, text)
             node.person = Person(text)
             node.setExpanded(True)
-            self.treeWidget.itemSelectionChanged.emit()
+            self.highlight_instances()
 
     def instance_tree_nodes_clicked(self):
         print "instancing nodes"
@@ -212,7 +211,7 @@ class ExampleWidget(QtGui.QWidget):
             node = CustomTreeNode(parent, root.person.name)
             node.person = root.person
             node.setExpanded(True)
-            self.treeWidget.itemSelectionChanged.emit()
+            self.highlight_instances()
 
     def delete_treewidet_items(self, ctrl):
         global NODES
