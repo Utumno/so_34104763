@@ -41,11 +41,11 @@ class CustomTreeNode(QtGui.QTreeWidgetItem):
     def __init__(self, parent, name):
         super(CustomTreeNode, self).__init__(parent)
         self.setText(0, name)
-        self.person_data = None
+        self.person = None
 
     def update(self):
-        if self.person_data:
-            self.setText(0, self.person_data.name)
+        if self.person:
+            self.setText(0, self.person.name)
 
 # UI
 # -----------------------------------------------------------------------------
@@ -141,7 +141,7 @@ class ExampleWidget(QtGui.QWidget):
         text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
                                               'Enter your name:')
         if ok:
-            item.person_data.name = text
+            item.person.name = text
             item.setText(0, text)
 
             # update all nodes to reflect name change
@@ -151,7 +151,7 @@ class ExampleWidget(QtGui.QWidget):
         results = []
         for i in range(root.childCount()):
             item = root.child(i)
-            results.append(item.person_data.uid)
+            results.append(item.person.uid)
             results.extend(self.get_used_uids(root=item))
         return results
 
@@ -160,7 +160,7 @@ class ExampleWidget(QtGui.QWidget):
         for i in range(root.childCount()):
             item = root.child(i)
             data = {}
-            data["uid"] = item.person_data.uid
+            data["uid"] = item.person.uid
             # recursive serialize children
             data["children"] = [self.get_nodes_hierarchy(root=item)]
             results.append(data)
@@ -180,7 +180,7 @@ class ExampleWidget(QtGui.QWidget):
         results = []
         for i in range(root.childCount()):
             item = root.child(i)
-            if item.person_data.uid in uids:
+            if item.person.uid in uids:
                 results.append(item)
             results.extend(self.get_instanced_nodes(root=item, uids=uids))
         return results
@@ -192,9 +192,9 @@ class ExampleWidget(QtGui.QWidget):
             if node:
                 node.setFont(0, FONTS.get_font("regular"))
         # collect uid's from selected
-        uids = [getattr(x.person_data, "uid") for x in
+        uids = [getattr(x.person, "uid") for x in
                 self.treeWidget.selectedItems() if
-                hasattr(x.person_data, "uid")]
+                hasattr(x.person, "uid")]
         INSTANCED_NODES = []
         for uid in uids:
             _instances = self.get_instanced_nodes(
@@ -214,7 +214,7 @@ class ExampleWidget(QtGui.QWidget):
         if ok:
             for root in roots:
                 node = CustomTreeNode(root, text)
-                node.person_data = Person(text)
+                node.person = Person(text)
                 node.setExpanded(True)
                 self.treeWidget.itemSelectionChanged.emit()
 
@@ -223,8 +223,8 @@ class ExampleWidget(QtGui.QWidget):
         roots = self.treeWidget.selectedItems()
         for root in roots:
             parent = self.treeWidget if not root.parent() else root.parent()
-            node = CustomTreeNode(parent, root.person_data.name)
-            node.person_data = root.person_data
+            node = CustomTreeNode(parent, root.person.name)
+            node.person = root.person
             node.setExpanded(True)
             self.treeWidget.itemSelectionChanged.emit()
 
@@ -240,27 +240,6 @@ class ExampleWidget(QtGui.QWidget):
         for n in reversed(NODES):
             if n.uid not in uids_used:
                 NODES.remove(n)
-
-        # uids_deleted = []
-
-        # # delete selected GUI tree nodes and collect UID of node_object
-        # for item in self.treeWidget.selectedItems():
-        #     uid = item.person_data.uid
-        #     if uid not in uids_deleted:
-        #         uids_deleted.append(uid)
-        #     (item.parent() or root).removeChild(item)
-
-        # # collect all uids used in GUI
-        # uids_used = self.get_used_uids(
-        # root=self.treeWidget.invisibleRootItem() )
-
-        # # remove all uids from uids_delete which still contain used instances
-        # uids_to_delete = [x for x in uids_deleted if x not in uids_used]
-
-        # for n in reversed(NODES):
-        #     if n.uid in uids_to_delete:
-        #         NODES.remove(n)
-
         self.get_hierarchy()
 
     def center_window(self, window, cursor=False):
