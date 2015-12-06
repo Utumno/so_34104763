@@ -48,10 +48,6 @@ class CustomTreeNode(QtGui.QTreeWidgetItem):
         self.person = person
         persons_count[person] += 1
 
-    def update(self):
-        if self.person:
-            self.setText(0, self.person.name)
-
 # UI
 # -----------------------------------------------------------------------------
 class ExampleWidget(QtGui.QWidget):
@@ -132,12 +128,6 @@ class ExampleWidget(QtGui.QWidget):
             root=self.treeWidget.invisibleRootItem())})
         json.dump(data, open("test.json", 'w'), indent=4)
 
-    def update_nodes(self, root=None):
-        for i in range(root.childCount()):
-            item = root.child(i)
-            item.update()
-            self.update_nodes(root=item)
-
     def item_doubleclicked(self):
         item = self.treeWidget.selectedItems()[0]
         text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
@@ -146,7 +136,10 @@ class ExampleWidget(QtGui.QWidget):
             item.person.name = text
             item.setText(0, text)
             # update all nodes to reflect name change
-            self.update_nodes(root=self.treeWidget.invisibleRootItem())
+            def _rename(node):
+                if item.person == node.person: # avoid reseting the text
+                    node.setText(0, text)
+            self._process_nodes(self.treeWidget.invisibleRootItem(), _rename)
 
     def get_nodes_hierarchy(self, root):
         results = []
