@@ -52,17 +52,12 @@ class CustomTreeNode(QtGui.QTreeWidgetItem):
 class ExampleWidget(QtGui.QWidget):
     def __init__(self):
         super(ExampleWidget, self).__init__()
-        self.init_fonts()
-        self.initUI()
-
-    @staticmethod
-    def init_fonts():
+        # Initialize fonts
         global FONTS
         FONTS = Fonts()
         FONTS.add_font(name="accent", bold=True, italic=True)
         FONTS.add_font(name="regular", bold=False, italic=False)
-
-    def initUI(self):
+        # Initialize the UI
         # widgets
         self.treeWidget = QtGui.QTreeWidget()
         self.treeWidget.setSelectionMode(
@@ -157,7 +152,7 @@ class ExampleWidget(QtGui.QWidget):
             results.extend(self.get_used_uids(root=item))
         return results
 
-    def get_nodes_hierarchy(self, root=None):
+    def get_nodes_hierarchy(self, root):
         results = []
         for i in range(root.childCount()):
             item = root.child(i)
@@ -208,17 +203,16 @@ class ExampleWidget(QtGui.QWidget):
 
     def add_tree_nodes_clicked(self):
         print "adding nodes"
-        roots = [
-            self.treeWidget] if self.treeWidget.selectedItems() == [] else \
-            self.treeWidget.selectedItems()
+        selected = self.treeWidget.selectedItems()
+        roots = [self.treeWidget] if not selected else selected
         text, ok = QtGui.QInputDialog.getText(self, 'Input Dialog',
                                               'Enter your name:')
-        if ok:
-            for root in roots:
-                node = CustomTreeNode(root, text)
-                node.person = Person(text)
-                node.setExpanded(True)
-                self.treeWidget.itemSelectionChanged.emit()
+        if not ok: return
+        for root in roots:
+            node = CustomTreeNode(root, text)
+            node.person = Person(text)
+            node.setExpanded(True)
+            self.treeWidget.itemSelectionChanged.emit()
 
     def instance_tree_nodes_clicked(self):
         print "instancing nodes"
