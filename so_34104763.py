@@ -4,7 +4,7 @@ import sys
 import uuid
 import json
 from random import randint
-from PySide import QtCore, QtGui
+from PySide import QtGui
 
 NODES = []
 HIERARCHY = {}
@@ -28,7 +28,7 @@ class Fonts(object):
 
 # Class Object
 # -----------------------------------------------------------------------------
-class Person():
+class Person(object):
     def __init__(self, name="", age=0):
         self.name = name
         self.uid = str(uuid.uuid4())
@@ -50,12 +50,13 @@ class CustomTreeNode(QtGui.QTreeWidgetItem):
 # UI
 # -----------------------------------------------------------------------------
 class ExampleWidget(QtGui.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self):
         super(ExampleWidget, self).__init__()
         self.init_fonts()
         self.initUI()
 
-    def init_fonts(self):
+    @staticmethod
+    def init_fonts():
         global FONTS
         FONTS = Fonts()
         FONTS.add_font(name="accent", bold=True, italic=True)
@@ -109,7 +110,8 @@ class ExampleWidget(QtGui.QWidget):
     def showEvent(self, event):
         print "loading"
 
-    def serialize_node(self, node):
+    @staticmethod
+    def serialize_node(node):
         data = {}
         if node:
             # base attributes
@@ -159,10 +161,9 @@ class ExampleWidget(QtGui.QWidget):
         results = []
         for i in range(root.childCount()):
             item = root.child(i)
-            data = {}
-            data["uid"] = item.person.uid
-            # recursive serialize children
-            data["children"] = [self.get_nodes_hierarchy(root=item)]
+            data = {"uid": item.person.uid,
+                    # recursive serialize children:
+                    "children": [self.get_nodes_hierarchy(root=item)]}
             results.append(data)
         return results
 
@@ -176,7 +177,8 @@ class ExampleWidget(QtGui.QWidget):
         self.highlight_instances()
         self.get_hierarchy()
 
-    def get_instanced_nodes(self, root=None, uids=[]):
+    def get_instanced_nodes(self, root=None, uids=()):
+        uids = uids or []
         results = []
         for i in range(root.childCount()):
             item = root.child(i)
