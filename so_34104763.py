@@ -1,12 +1,13 @@
 # Imports
 # -----------------------------------------------------------------------------
+import collections
 import sys
 import uuid
 import json
 from random import randint
 from PySide import QtGui
 
-NODES = []
+persons_count = collections.defaultdict(int)
 INSTANCED_NODES = []
 FONTS = None
 
@@ -32,15 +33,21 @@ class Person(object):
         self.name = name
         self.uid = str(uuid.uuid4())
         self.age = (randint(0, 20))
-        NODES.append(self)
+
+    def __eq__(self, other):
+        return isinstance(other, Person) and self.uid == other.uid
+    def __ne__(self, other): return self != other # you need this
+    def __hash__(self):
+        return hash(self.uid)
 
 # Custom QTreeWidgetItem
 # -----------------------------------------------------------------------------
 class CustomTreeNode(QtGui.QTreeWidgetItem):
-    def __init__(self, parent, name):
+    def __init__(self, parent, person):
         super(CustomTreeNode, self).__init__(parent)
-        self.setText(0, name)
-        self.person = None
+        self.setText(0, person.name)
+        self.person = person
+        persons_count[person] += 1
 
     def update(self):
         if self.person:
@@ -118,7 +125,7 @@ class ExampleWidget(QtGui.QWidget):
     def save_nodes(self):
         print "Saving serialized nodes..."
         data = {}
-        items = [self.serialize_node(x) for x in NODES]
+        items = [self.serialize_node(x) for x in iter(persons_count.keys())]
         data.update({"nodes": items})
         data.update({"hierarchy": self.get_nodes_hierarchy(
             root=self.treeWidget.invisibleRootItem())})
@@ -142,14 +149,6 @@ class ExampleWidget(QtGui.QWidget):
             item.setText(0, text)
             # update all nodes to reflect name change
             self.update_nodes(root=self.treeWidget.invisibleRootItem())
-
-    def get_used_uids(self, root=None):
-        results = []
-        for i in range(root.childCount()):
-            item = root.child(i)
-            results.append(item.person.uid)
-            results.extend(self.get_used_uids(root=item))
-        return results
 
     def get_nodes_hierarchy(self, root):
         results = []
@@ -198,8 +197,7 @@ class ExampleWidget(QtGui.QWidget):
                                               'Enter your name:')
         if not ok: return
         for root in roots:
-            node = CustomTreeNode(root, text)
-            node.person = Person(text)
+            node = CustomTreeNode(root, Person(text))
             node.setExpanded(True)
             self.highlight_instances()
 
@@ -208,23 +206,17 @@ class ExampleWidget(QtGui.QWidget):
         roots = self.treeWidget.selectedItems()
         for root in roots:
             parent = self.treeWidget if not root.parent() else root.parent()
-            node = CustomTreeNode(parent, root.person.name)
-            node.person = root.person
+            node = CustomTreeNode(parent, root.person)
             node.setExpanded(True)
             self.highlight_instances()
 
     def delete_treewidet_items(self, ctrl):
-        global NODES
         root = self.treeWidget.invisibleRootItem()
         # delete treewidget items from gui
         for item in self.treeWidget.selectedItems():
             (item.parent() or root).removeChild(item)
-        # collect all uids used in GUI
-        uids_used = self.get_used_uids(
-            root=self.treeWidget.invisibleRootItem())
-        for n in reversed(NODES):
-            if n.uid not in uids_used:
-                NODES.remove(n)
+            persons_count[item.person] -= 1
+            if not persons_count[item.person]: del persons_count[item.person]
 
     def center_window(self, window, cursor=False):
         qr = window.frameGeometry()
