@@ -8,7 +8,6 @@ from random import randint
 from PySide import QtGui
 
 persons_count = collections.defaultdict(int)
-INSTANCED_NODES = []
 FONTS = None
 
 # Fonts
@@ -101,6 +100,8 @@ class ExampleWidget(QtGui.QWidget):
         self.resize(200, 400)
         self.show()
         self.center_window(self, True)
+        # highlighted nodes
+        self.highlighted = set()
 
     # Functions
     # -------------------------------------------------------------------------
@@ -131,9 +132,6 @@ class ExampleWidget(QtGui.QWidget):
             root=self.treeWidget.invisibleRootItem())})
         json.dump(data, open("test.json", 'w'), indent=4)
 
-    def delete_tree_nodes_clicked(self):
-        self.delete_treewidet_items(self.treeWidget)
-
     def update_nodes(self, root=None):
         for i in range(root.childCount()):
             item = root.child(i)
@@ -160,34 +158,23 @@ class ExampleWidget(QtGui.QWidget):
             results.append(data)
         return results
 
-    def get_instanced_nodes(self, root=None, uids=()):
-        uids = uids or []
-        results = []
+    def _process_nodes(self, root, func):
         for i in range(root.childCount()):
             item = root.child(i)
-            if item.person.uid in uids:
-                results.append(item)
-            results.extend(self.get_instanced_nodes(root=item, uids=uids))
-        return results
+            func(item)
+            self._process_nodes(root=item, func=func)
 
     def highlight_instances(self):
-        global INSTANCED_NODES
-        # reset previously instanced nodes
-        for node in INSTANCED_NODES:
-            if node:
-                node.setFont(0, FONTS.get_font("regular"))
-        # collect uid's from selected
-        uids = [getattr(x.person, "uid") for x in
-                self.treeWidget.selectedItems() if
-                hasattr(x.person, "uid")]
-        INSTANCED_NODES = []
-        for uid in uids:
-            _instances = self.get_instanced_nodes(
-                root=self.treeWidget.invisibleRootItem(), uids=[uid])
-            if len(_instances) > 1:
-                INSTANCED_NODES += _instances
-        for node in INSTANCED_NODES:
-            node.setFont(0, FONTS.get_font("accent"))
+        # reset previously highlighted nodes
+        for node in self.highlighted:
+            node.setFont(0, FONTS.get_font("regular"))
+        self.highlighted.clear()
+        selected = set(x.person for x in self.treeWidget.selectedItems())
+        def _same_person(item):
+            if item.person in selected and persons_count[item.person] > 1:
+                self.highlighted.add(item)
+                item.setFont(0, FONTS.get_font("accent"))
+        self._process_nodes(self.treeWidget.invisibleRootItem(), _same_person)
 
     def add_tree_nodes_clicked(self):
         print "adding nodes"
@@ -210,11 +197,12 @@ class ExampleWidget(QtGui.QWidget):
             node.setExpanded(True)
             self.highlight_instances()
 
-    def delete_treewidet_items(self, ctrl):
+    def delete_tree_nodes_clicked(self):
         root = self.treeWidget.invisibleRootItem()
         # delete treewidget items from gui
         for item in self.treeWidget.selectedItems():
             (item.parent() or root).removeChild(item)
+            self.highlighted.discard(item)
             persons_count[item.person] -= 1
             if not persons_count[item.person]: del persons_count[item.person]
 
