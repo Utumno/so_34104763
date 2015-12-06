@@ -7,7 +7,6 @@ from random import randint
 from PySide import QtGui
 
 NODES = []
-HIERARCHY = {}
 INSTANCED_NODES = []
 FONTS = None
 
@@ -83,7 +82,7 @@ class ExampleWidget(QtGui.QWidget):
         self.btn_instance_tree_nodes.clicked.connect(
             self.instance_tree_nodes_clicked)
         self.treeWidget.itemSelectionChanged.connect(
-            self.item_selection_changed)
+            self.highlight_instances)
         self.treeWidget.itemDoubleClicked.connect(self.item_doubleclicked)
         # Set TreeWidget Headers
         self.treeWidget.setColumnCount(1)
@@ -121,7 +120,8 @@ class ExampleWidget(QtGui.QWidget):
         data = {}
         items = [self.serialize_node(x) for x in NODES]
         data.update({"nodes": items})
-        data.update({"hierarchy": HIERARCHY})
+        data.update({"hierarchy": self.get_nodes_hierarchy(
+            root=self.treeWidget.invisibleRootItem())})
         json.dump(data, open("test.json", 'w'), indent=4)
 
     def delete_tree_nodes_clicked(self):
@@ -161,16 +161,6 @@ class ExampleWidget(QtGui.QWidget):
                     "children": [self.get_nodes_hierarchy(root=item)]}
             results.append(data)
         return results
-
-    def get_hierarchy(self):
-        print "nope"
-        global HIERARCHY
-        HIERARCHY = self.get_nodes_hierarchy(
-            root=self.treeWidget.invisibleRootItem())
-
-    def item_selection_changed(self):
-        self.highlight_instances()
-        self.get_hierarchy()
 
     def get_instanced_nodes(self, root=None, uids=()):
         uids = uids or []
@@ -236,7 +226,6 @@ class ExampleWidget(QtGui.QWidget):
         for n in reversed(NODES):
             if n.uid not in uids_used:
                 NODES.remove(n)
-        self.get_hierarchy()
 
     def center_window(self, window, cursor=False):
         qr = window.frameGeometry()
